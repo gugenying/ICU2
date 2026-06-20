@@ -1,0 +1,7 @@
+model,cv_auc,rf__n_estimators,rf__min_samples_split,rf__min_samples_leaf,rf__max_features,rf__max_depth,lr__solver,lr__penalty,lr__C,gbc__subsample,gbc__n_estimators,gbc__min_samples_split,gbc__min_samples_leaf,gbc__max_depth,gbc__learning_rate,abc__n_estimators,abc__learning_rate,n_estimators,max_depth,learning_rate,subsample,colsample_bytree,reg_alpha,reg_lambda,min_child_weight,num_leaves,min_child_samples
+RF,0.9296357015143222,50,15,4,log2,4,,,,,,,,,,,,,,,,,,,,,
+LR,0.9394018317825215,,,,,,lbfgs,l2,1.0,,,,,,,,,,,,,,,,,,
+GBC,0.9429522349936142,,,,,,,,,0.8,200,25,6,3,0.05,,,,,,,,,,,,
+ABC,0.9233567378215654,,,,,,,,,,,,,,,200,0.1,,,,,,,,,,
+XGB,0.9449087246852764,,,,,,,,,,,,,,,,,100,3,0.05,0.6,0.6,0,2.0,5,,
+LGB,0.9482390950556467,,,,,,,,,,,,,,,,,100,4,0.05,0.6,0.6,0,1.0,,24,10
