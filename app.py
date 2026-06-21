@@ -12,7 +12,6 @@ import joblib
 import matplotlib
 import numpy as np
 import pandas as pd
-import shap
 import streamlit as st
 from matplotlib.patches import Patch
 from sklearn.exceptions import InconsistentVersionWarning
@@ -374,6 +373,15 @@ def prediction_frame(model, x_data):
     raise ValueError("Selected model does not expose predict_proba or decision_function.")
 
 
+@st.cache_resource(show_spinner=False)
+def load_shap_module():
+    try:
+        import shap as shap_module
+    except Exception as exc:
+        raise RuntimeError(f"SHAP dependency is unavailable: {exc}") from exc
+    return shap_module
+
+
 @st.cache_data(show_spinner=False)
 def load_data():
     missing = [p.name for p in (TRAIN_FILE, TEST_FILE) if not p.exists()]
@@ -473,6 +481,7 @@ def get_best_model_name(datasets):
 
 @st.cache_resource(show_spinner=False)
 def compute_shap_artifacts(model_name):
+    shap_module = load_shap_module()
     datasets = load_data()
     x_train = datasets["train"].drop(columns=[LABEL_COL])
     x_explain = x_train.sample(
@@ -486,27 +495,27 @@ def compute_shap_artifacts(model_name):
 
     if estimator_type in TREE_TYPE_NAMES:
         try:
-            explainer = shap.TreeExplainer(
+            explainer = shap_module.TreeExplainer(
                 estimator,
                 data=x_explain,
                 feature_perturbation="interventional",
             )
         except Exception:
-            explainer = shap.TreeExplainer(estimator)
+            explainer = shap_module.TreeExplainer(estimator)
         raw_values = explainer.shap_values(x_explain)
         values, expected_value = extract_shap_2d(raw_values, explainer.expected_value)
     elif estimator_type in LINEAR_TYPE_NAMES or hasattr(estimator, "coef_"):
-        explainer = shap.LinearExplainer(estimator, x_explain)
+        explainer = shap_module.LinearExplainer(estimator, x_explain)
         raw_values = explainer.shap_values(x_explain)
         values, expected_value = extract_shap_2d(raw_values, explainer.expected_value)
     else:
-        background = shap.kmeans(x_explain, min(20, len(x_explain)))
+        background = shap_module.kmeans(x_explain, min(20, len(x_explain)))
 
         def predict_fn(array):
             frame = pd.DataFrame(array, columns=feature_names)
             return prediction_frame(model, frame)
 
-        explainer = shap.KernelExplainer(predict_fn, background)
+        explainer = shap_module.KernelExplainer(predict_fn, background)
         raw_values = explainer.shap_values(x_explain, nsamples=40, silent=True)
         values, expected_value = extract_shap_2d(raw_values, explainer.expected_value)
 
@@ -909,9 +918,10 @@ with tab_shap:
             st.image(str(png_dot), use_container_width=True)
         else:
             try:
+                shap_module = load_shap_module()
                 artifacts = compute_shap_artifacts(model_choice)
                 fig, _ = plt.subplots(figsize=(7.2, max(4, len(feature_names) * 0.42)))
-                shap.summary_plot(
+                shap_module.summary_plot(
                     artifacts["values"],
                     artifacts["x_explain"],
                     feature_names=[display_chart_feature_name(f) for f in feature_names],
@@ -930,9 +940,10 @@ with tab_shap:
             st.image(str(png_bar), use_container_width=True)
         else:
             try:
+                shap_module = load_shap_module()
                 artifacts = compute_shap_artifacts(model_choice)
                 fig, _ = plt.subplots(figsize=(7.2, max(4, len(feature_names) * 0.42)))
-                shap.summary_plot(
+                shap_module.summary_plot(
                     artifacts["values"],
                     artifacts["x_explain"],
                     feature_names=[display_chart_feature_name(f) for f in feature_names],
