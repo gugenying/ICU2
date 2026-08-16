@@ -52,10 +52,10 @@ VAL_FILE = BASE_DIR / "val1.xlsx"
 LABEL_COL = "Group"
 CLASS_IDX = 1
 SHAP_SAMPLE_SIZE = 250
-APP_TITLE_CN = "基于护理相关暴露因素的ICU患者获得多重耐药菌风险预测模型构建及应用研究"
+APP_TITLE_CN = "基于机器学习的ICU患者获得多重耐药菌风险预测模型的构建与验证"
 APP_TITLE_EN = (
-    "Development and Application of a Risk Prediction Model for Multidrug-Resistant "
-    "Organism Acquisition in ICU Patients Based on Nursing-Related Exposure Factors"
+    "Development and Validation of a Machine Learning-Based Risk Prediction Model "
+    "for Multidrug-Resistant Organism Acquisition in ICU Patients"
 )
 APP_FOOTNOTE = "顾艮莹，南京医科大学附属明基医院，13770730245"
 

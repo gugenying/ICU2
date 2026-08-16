@@ -20,11 +20,11 @@ streamlit run app.py
 
 网页标题：
 
-基于护理相关暴露因素的ICU患者获得多重耐药菌风险预测模型构建及应用研究
+基于机器学习的ICU患者获得多重耐药菌风险预测模型的构建与验证
 
 英文标题：
 
-Development and Application of a Risk Prediction Model for Multidrug-Resistant Organism Acquisition in ICU Patients Based on Nursing-Related Exposure Factors
+Development and Validation of a Machine Learning-Based Risk Prediction Model for Multidrug-Resistant Organism Acquisition in ICU Patients
 
 网页脚注：
 
