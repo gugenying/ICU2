@@ -72,29 +72,33 @@ CHART_SPLIT_LABELS = {
 }
 
 FEATURE_LABELS = {
-    "icu_days": "ICU住院天数（ICU days）",
-    "longtermcare_facility_residency": "长期护理机构居住史（Long-term care facility residency）",
-    "surgery": "手术史（Surgery）",
-    "number_of_surgeries": "手术次数（Number of surgeries）",
-    "plt": "血小板计数（Platelet count）",
-    "pt": "凝血酶原时间（Prothrombin time）",
-    "mechanical_ventilation_days": "机械通气天数（Mechanical ventilation days）",
-    "ureter_days": "导尿管留置天数（Ureter catheter days）",
-    "antibiotics_days": "抗菌药物使用天数（Antibiotics days）",
-    "sedative_drugs_days": "镇静药物使用天数（Sedative drugs days）",
+    "lung_infection": "入院时肺部感染（Lung infection）",
+    "previous_mdro": "既往MDRO史（Previous MDRO）",
+    "longtermcare_facility_residency": "入院前护理机构长期居住史（Long-term care facility residency）",
+    "alb": "白蛋白数值（Albumin, g/L）",
+    "bronchoscopic": "使用纤维支气管镜（Bronchoscopy）",
+    "mechanical_ventilation": "呼吸机辅助通气（Mechanical ventilation）",
+    "cvc": "置入中心静脉导管（Central venous catheter）",
+    "ng": "置入胃管（Nasogastric tube）",
+    "prior_bed_housed_mdro_patients": "前床位居住MDRO者（Prior bed housed MDRO patients）",
+    "cerebrovascular_disease": "既往脑血管疾病史（Cerebrovascular disease）",
+    "malignancy": "既往肿瘤病史（Malignancy）",
+    "respiratory_system_diseases": "既往肺部疾病史（Respiratory system diseases）",
 }
 
 FEATURE_CHART_LABELS = {
-    "icu_days": "ICU days",
+    "lung_infection": "Lung infection",
+    "previous_mdro": "Previous MDRO",
     "longtermcare_facility_residency": "Long-term care facility residency",
-    "surgery": "Surgery",
-    "number_of_surgeries": "Number of surgeries",
-    "plt": "Platelet count",
-    "pt": "Prothrombin time",
-    "mechanical_ventilation_days": "Mechanical ventilation days",
-    "ureter_days": "Ureter catheter days",
-    "antibiotics_days": "Antibiotics days",
-    "sedative_drugs_days": "Sedative drugs days",
+    "alb": "Albumin",
+    "bronchoscopic": "Bronchoscopy",
+    "mechanical_ventilation": "Mechanical ventilation",
+    "cvc": "Central venous catheter",
+    "ng": "Nasogastric tube",
+    "prior_bed_housed_mdro_patients": "Prior bed housed MDRO patients",
+    "cerebrovascular_disease": "Cerebrovascular disease",
+    "malignancy": "Malignancy",
+    "respiratory_system_diseases": "Respiratory system diseases",
 }
 
 MODEL_LABELS = {
@@ -162,6 +166,38 @@ st.markdown(
         margin-bottom: 0.25rem;
     }
 
+    .hero-banner {
+        background: linear-gradient(135deg, #0f766e 0%, #1d4ed8 100%);
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(29, 78, 216, 0.16);
+        margin-bottom: 0.9rem;
+        padding: 1.55rem 1.8rem 1.45rem;
+    }
+
+    .hero-kicker {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.45rem;
+        text-transform: uppercase;
+    }
+
+    .hero-title {
+        color: #ffffff;
+        font-size: 1.62rem;
+        font-weight: 760;
+        line-height: 1.3;
+        margin-bottom: 0.45rem;
+    }
+
+    .hero-title-en {
+        color: rgba(255, 255, 255, 0.86);
+        font-size: 0.86rem;
+        line-height: 1.5;
+        max-width: 1000px;
+    }
+
     .app-title {
         color: var(--ink);
         font-size: 1.86rem;
@@ -208,6 +244,18 @@ st.markdown(
         border-right: 1px solid var(--line);
         min-height: 118px;
         padding: 1rem 1.1rem;
+        position: relative;
+    }
+
+    .result-cell::before {
+        background: var(--accent, transparent);
+        border-radius: 8px 8px 0 0;
+        content: "";
+        height: 4px;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
     }
 
     .result-cell:last-child {
@@ -566,13 +614,23 @@ def metric_row(y_true, y_prob, threshold, split_name):
 
 
 def draw_probability_gauge(probability, threshold):
-    fig, ax = plt.subplots(figsize=(8, 1.45))
-    ax.barh([0], [probability], color="#2563eb", height=0.44)
-    ax.barh([0], [1 - probability], left=[probability], color="#e8eef5", height=0.44)
-    ax.axvline(threshold, color="#dc2626", lw=2, linestyle="--")
+    fig, ax = plt.subplots(figsize=(8, 1.6))
+    # 风险分层背景带（与 risk_level 分层一致）
+    ax.axvspan(0, 0.4, ymin=0.28, ymax=0.72, color="#bbf7d0", alpha=0.55, zorder=0)
+    ax.axvspan(0.4, 0.7, ymin=0.28, ymax=0.72, color="#fde68a", alpha=0.55, zorder=0)
+    ax.axvspan(0.7, 1.0, ymin=0.28, ymax=0.72, color="#fecaca", alpha=0.55, zorder=0)
+    bar_color = (
+        "#dc2626" if probability >= 0.70
+        else "#d97706" if probability >= 0.40
+        else "#16a34a"
+    )
+    ax.barh([0], [probability], color=bar_color, height=0.44, zorder=2)
+    ax.barh([0], [1 - probability], left=[probability], color="#e8eef5",
+            height=0.44, alpha=0.55, zorder=1)
+    ax.axvline(threshold, color="#1e293b", lw=2, linestyle="--", zorder=3)
     ax.text(
         probability,
-        0.29,
+        0.31,
         f"{probability:.1%}",
         ha="center",
         va="bottom",
@@ -582,20 +640,45 @@ def draw_probability_gauge(probability, threshold):
     )
     ax.text(
         threshold,
-        -0.31,
+        -0.33,
         f"Youden {threshold:.3f}",
         ha="center",
         va="top",
-        color="#dc2626",
+        color="#1e293b",
         fontsize=9,
     )
     ax.set_xlim(0, 1)
-    ax.set_ylim(-0.45, 0.48)
+    ax.set_ylim(-0.45, 0.5)
     ax.set_xlabel("Predicted probability", fontsize=9)
     ax.set_yticks([])
     for spine in ("top", "right", "left"):
         ax.spines[spine].set_visible(False)
     ax.grid(axis="x", alpha=0.18)
+    fig.tight_layout()
+    return fig
+
+
+def draw_confusion_matrix_mini(y_true, y_prob, threshold, title):
+    """小型混淆矩阵热图（不依赖 seaborn）。"""
+    y_pred = (y_prob >= threshold).astype(int)
+    cm = sk_cm(y_true, y_pred)
+    fig, ax = plt.subplots(figsize=(3.3, 3.0))
+    ax.imshow(cm, cmap="Blues")
+    cell_mid = cm.max() / 2 if cm.max() else 1
+    for i in range(2):
+        for j in range(2):
+            ax.text(
+                j, i, str(cm[i, j]),
+                ha="center", va="center", fontsize=15, fontweight="bold",
+                color="white" if cm[i, j] > cell_mid else "#18212f",
+            )
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(["NEG", "POS"], fontsize=9)
+    ax.set_yticklabels(["NEG", "POS"], fontsize=9)
+    ax.set_xlabel("Predicted", fontsize=9.5)
+    ax.set_ylabel("True", fontsize=9.5)
+    ax.set_title(title, fontsize=10.5, fontweight="bold", color="#18212f")
     fig.tight_layout()
     return fig
 
@@ -726,28 +809,28 @@ with st.sidebar:
     if model_choice == best_model_name:
         st.caption("当前为验证集表现较优模型")
 
+    _scores = get_model_scores(model_choice, datasets)
+    st.caption(
+        "当前模型 AUC：" + " | ".join(
+            f"{SPLIT_LABELS[s].split()[0]} {_scores[s]:.3f}"
+            for s in available_splits if s in _scores
+        )
+    )
+
     st.markdown("### 患者护理相关暴露因素")
     st.caption("连续变量默认采用训练集中的中位数，可按实际患者情况调整。")
 
     input_values = {}
-    for feature in feature_names:
-        stats = feature_profile[feature]
+
+    def render_continuous_input(feature, stats):
+        """连续/有序变量：按取值特征选择滑块或下拉框。"""
         unique_values = stats["unique"]
         label = display_feature_name(feature)
 
-        if set(unique_values).issubset({0, 1}):
-            default_index = 1 if stats["median"] >= 0.5 else 0
-            input_values[feature] = st.selectbox(
-                label,
-                options=[0, 1],
-                index=default_index,
-                format_func=lambda value: "是" if value == 1 else "否",
-                key=f"feat_{feature}",
-            )
-        elif len(unique_values) <= 8 and all_integer_values(unique_values):
+        if len(unique_values) <= 8 and all_integer_values(unique_values):
             integer_values = [int(v) for v in unique_values]
             median_value = int(round(stats["median"]))
-            input_values[feature] = st.selectbox(
+            return st.selectbox(
                 label,
                 options=integer_values,
                 index=integer_values.index(median_value)
@@ -755,8 +838,8 @@ with st.sidebar:
                 else 0,
                 key=f"feat_{feature}",
             )
-        elif all_integer_values(unique_values):
-            input_values[feature] = st.slider(
+        if all_integer_values(unique_values):
+            return st.slider(
                 label,
                 min_value=int(round(stats["min"])),
                 max_value=int(round(stats["max"])),
@@ -764,33 +847,70 @@ with st.sidebar:
                 step=1,
                 key=f"feat_{feature}",
             )
-        else:
-            span = max(stats["max"] - stats["min"], 1.0)
-            step = max(0.01, round(span / 200, 2))
-            min_value = round(stats["min"], 2)
-            max_value = round(stats["max"], 2)
-            default_value = aligned_slider_value(
-                min_value,
-                max_value,
-                round(stats["median"], 2),
-                step,
+        span = max(stats["max"] - stats["min"], 1.0)
+        step = max(0.01, round(span / 200, 2))
+        min_value = round(stats["min"], 2)
+        max_value = round(stats["max"], 2)
+        default_value = aligned_slider_value(
+            min_value,
+            max_value,
+            round(stats["median"], 2),
+            step,
+        )
+        return st.slider(
+            label,
+            min_value=min_value,
+            max_value=max_value,
+            value=default_value,
+            step=step,
+            key=f"feat_{feature}",
+        )
+
+    binary_features = [
+        f for f in feature_names
+        if set(feature_profile[f]["unique"]).issubset({0, 1})
+    ]
+    continuous_features = [f for f in feature_names if f not in binary_features]
+
+    if binary_features:
+        st.markdown("**暴露与侵入性操作因素（开 = 是）**")
+        for feature in binary_features:
+            stats = feature_profile[feature]
+            input_values[feature] = int(
+                st.toggle(
+                    display_feature_name(feature),
+                    value=bool(stats["median"] >= 0.5),
+                    key=f"feat_{feature}",
+                )
             )
-            input_values[feature] = st.slider(
-                label,
-                min_value=min_value,
-                max_value=max_value,
-                value=default_value,
-                step=step,
-                key=f"feat_{feature}",
+
+    if continuous_features:
+        st.markdown("**实验室与检查指标**")
+        for feature in continuous_features:
+            input_values[feature] = render_continuous_input(
+                feature, feature_profile[feature]
             )
+
+    st.markdown("---")
+    split_info = " | ".join(
+        f"{SPLIT_LABELS[s].split()[0]} {len(datasets[s])}例" for s in available_splits
+    )
+    st.caption(f"模型数据：{split_info}")
 
 
 # ====================================================================
 # Header and model predictions
 # ====================================================================
-st.markdown('<div class="app-kicker">ICU多重耐药菌获得风险预测系统</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="app-title">{APP_TITLE_CN}</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="app-title-en">{APP_TITLE_EN}</div>', unsafe_allow_html=True)
+st.markdown(
+    f"""
+<div class="hero-banner">
+    <div class="hero-kicker">ICU 多重耐药菌获得风险预测系统</div>
+    <div class="hero-title">{APP_TITLE_CN}</div>
+    <div class="hero-title-en">{APP_TITLE_EN}</div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 st.markdown(
     '<div class="app-subtitle">'
     "本网页用于基于护理相关暴露因素进行ICU患者多重耐药菌获得风险的个体化预测，"
@@ -811,29 +931,31 @@ except Exception as exc:
 
 prediction = int(probability >= threshold)
 risk_text, risk_class = risk_level(probability)
+risk_color = {"status-high": "#dc2626", "status-mid": "#b45309", "status-low": "#15803d"}[risk_class]
 decision_text = "阳性" if prediction else "阴性"
 decision_class = "status-pos" if prediction else "status-neg"
+decision_color = "#dc2626" if prediction else "#15803d"
 test_auc = get_model_scores(model_choice, datasets).get("test", np.nan)
 
 st.markdown(
     f"""
 <div class="result-strip">
-    <div class="result-cell">
+    <div class="result-cell" style="--accent: {risk_color};">
         <div class="result-label">预测概率</div>
-        <div class="result-value">{probability:.1%}</div>
+        <div class="result-value {risk_class}">{probability:.1%}</div>
         <div class="result-note">多重耐药菌获得风险概率</div>
     </div>
-    <div class="result-cell">
+    <div class="result-cell" style="--accent: {risk_color};">
         <div class="result-label">风险等级</div>
         <div class="result-value {risk_class}">{risk_text}</div>
-        <div class="result-note">依据预测概率分层</div>
+        <div class="result-note">低 &lt;40% | 中 40-70% | 高 ≥70%</div>
     </div>
-    <div class="result-cell">
+    <div class="result-cell" style="--accent: {decision_color};">
         <div class="result-label">模型判定</div>
         <div class="result-value {decision_class}">{decision_text}</div>
         <div class="result-note">Youden阈值 {threshold:.3f}</div>
     </div>
-    <div class="result-cell">
+    <div class="result-cell" style="--accent: #2563eb;">
         <div class="result-label">内部验证AUC</div>
         <div class="result-value">{test_auc:.3f}</div>
         <div class="result-note">{display_model_name(model_choice)}</div>
@@ -994,6 +1116,23 @@ with tab_metrics:
 
     selected_metrics = pd.DataFrame(selected_rows)
     st.dataframe(selected_metrics.set_index("数据集 Dataset"), use_container_width=True)
+
+    st.markdown(
+        '<div class="section-title">混淆矩阵（按Youden阈值判定）</div>',
+        unsafe_allow_html=True,
+    )
+    cm_cols = st.columns(len(available_splits))
+    for col, split in zip(cm_cols, available_splits):
+        with col:
+            df_split = datasets[split]
+            fig = draw_confusion_matrix_mini(
+                df_split[LABEL_COL].values,
+                prediction_frame(model, df_split.drop(columns=[LABEL_COL])),
+                threshold,
+                CHART_SPLIT_LABELS[split],
+            )
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
 
     st.markdown('<div class="section-title">全部模型AUC比较</div>', unsafe_allow_html=True)
     auc_rows = []
