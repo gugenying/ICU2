@@ -550,7 +550,7 @@ def compute_shap_artifacts(model_name):
             )
         except Exception:
             explainer = shap_module.TreeExplainer(estimator)
-        raw_values = explainer.shap_values(x_explain)
+        raw_values = explainer.shap_values(x_explain, check_additivity=False)
         values, expected_value = extract_shap_2d(raw_values, explainer.expected_value)
     elif estimator_type in LINEAR_TYPE_NAMES or hasattr(estimator, "coef_"):
         explainer = shap_module.LinearExplainer(estimator, x_explain)
@@ -578,7 +578,10 @@ def compute_shap_artifacts(model_name):
 
 def compute_input_shap(artifacts, input_df):
     explainer = artifacts["explainer"]
-    raw_values = explainer.shap_values(input_df)
+    if type(explainer).__name__ == "TreeExplainer":
+        raw_values = explainer.shap_values(input_df, check_additivity=False)
+    else:
+        raw_values = explainer.shap_values(input_df)
     values, expected_value = extract_shap_2d(raw_values, explainer.expected_value)
     return values[0], expected_value
 
@@ -817,7 +820,7 @@ with st.sidebar:
         )
     )
 
-    st.markdown("### 患者护理相关暴露因素")
+    st.markdown("### 相关暴露因素")
     st.caption("连续变量默认采用训练集中的中位数，可按实际患者情况调整。")
 
     input_values = {}
