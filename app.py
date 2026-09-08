@@ -235,7 +235,7 @@ st.markdown(
         border-radius: 8px;
         display: grid;
         gap: 0;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         margin-bottom: 1rem;
         overflow: hidden;
     }
@@ -586,14 +586,6 @@ def compute_input_shap(artifacts, input_df):
     return values[0], expected_value
 
 
-def risk_level(probability):
-    if probability >= 0.70:
-        return "高风险", "status-high"
-    if probability >= 0.40:
-        return "中风险", "status-mid"
-    return "低风险", "status-low"
-
-
 def metric_row(y_true, y_prob, threshold, split_name):
     y_pred = (y_prob >= threshold).astype(int)
     tn, fp, fn, tp = sk_cm(y_true, y_pred).ravel()
@@ -618,18 +610,9 @@ def metric_row(y_true, y_prob, threshold, split_name):
 
 def draw_probability_gauge(probability, threshold):
     fig, ax = plt.subplots(figsize=(8, 1.6))
-    # 风险分层背景带（与 risk_level 分层一致）
-    ax.axvspan(0, 0.4, ymin=0.28, ymax=0.72, color="#bbf7d0", alpha=0.55, zorder=0)
-    ax.axvspan(0.4, 0.7, ymin=0.28, ymax=0.72, color="#fde68a", alpha=0.55, zorder=0)
-    ax.axvspan(0.7, 1.0, ymin=0.28, ymax=0.72, color="#fecaca", alpha=0.55, zorder=0)
-    bar_color = (
-        "#dc2626" if probability >= 0.70
-        else "#d97706" if probability >= 0.40
-        else "#16a34a"
-    )
-    ax.barh([0], [probability], color=bar_color, height=0.44, zorder=2)
+    ax.barh([0], [probability], color="#2563eb", height=0.44, zorder=2)
     ax.barh([0], [1 - probability], left=[probability], color="#e8eef5",
-            height=0.44, alpha=0.55, zorder=1)
+            height=0.44, zorder=1)
     ax.axvline(threshold, color="#1e293b", lw=2, linestyle="--", zorder=3)
     ax.text(
         probability,
@@ -937,8 +920,6 @@ except Exception as exc:
     st.stop()
 
 prediction = int(probability >= threshold)
-risk_text, risk_class = risk_level(probability)
-risk_color = {"status-high": "#dc2626", "status-mid": "#b45309", "status-low": "#15803d"}[risk_class]
 decision_text = "阳性" if prediction else "阴性"
 decision_class = "status-pos" if prediction else "status-neg"
 decision_color = "#dc2626" if prediction else "#15803d"
@@ -947,15 +928,10 @@ test_auc = get_model_scores(model_choice, datasets).get("test", np.nan)
 st.markdown(
     f"""
 <div class="result-strip">
-    <div class="result-cell" style="--accent: {risk_color};">
+    <div class="result-cell" style="--accent: #2563eb;">
         <div class="result-label">预测概率</div>
-        <div class="result-value {risk_class}">{probability:.1%}</div>
+        <div class="result-value">{probability:.1%}</div>
         <div class="result-note">多重耐药菌获得风险概率</div>
-    </div>
-    <div class="result-cell" style="--accent: {risk_color};">
-        <div class="result-label">风险等级</div>
-        <div class="result-value {risk_class}">{risk_text}</div>
-        <div class="result-note">低 &lt;40% | 中 40-70% | 高 ≥70%</div>
     </div>
     <div class="result-cell" style="--accent: {decision_color};">
         <div class="result-label">模型判定</div>
