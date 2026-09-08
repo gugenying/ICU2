@@ -799,14 +799,18 @@ best_model_name = get_best_model_name(datasets)
 # ====================================================================
 with st.sidebar:
     st.markdown("### 模型选择")
+    # 默认使用 Gradient Boosting；若模型文件缺失则回退到验证集表现最优模型
+    default_model_name = (
+        "GBC" if "GBC" in available_models
+        else best_model_name if best_model_name in available_models
+        else available_models[0]
+    )
     model_choice = st.selectbox(
         "已训练模型",
         options=available_models,
-        index=available_models.index(best_model_name)
-        if best_model_name in available_models
-        else 0,
+        index=available_models.index(default_model_name),
         format_func=display_model_name,
-        help="默认优先选择验证集AUC表现较好的模型。",
+        help="默认使用 Gradient Boosting 模型，可切换至其他已训练模型。",
     )
 
     if model_choice == best_model_name:
