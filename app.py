@@ -375,6 +375,17 @@ def get_estimator(model):
     return model
 
 
+def shap_requires_kernel(model):
+    """无原生 SHAP 支持的模型（如 AdaBoost）只能走 KernelExplainer，计算很慢。"""
+    estimator = get_estimator(model)
+    estimator_type = type(estimator).__name__
+    return (
+        estimator_type not in TREE_TYPE_NAMES
+        and estimator_type not in LINEAR_TYPE_NAMES
+        and not hasattr(estimator, "coef_")
+    )
+
+
 def extract_shap_2d(shap_values, expected_value, class_idx=CLASS_IDX):
     if hasattr(shap_values, "values"):
         shap_values = shap_values.values
@@ -980,15 +991,23 @@ with tab_prediction:
         st.dataframe(summary_df, use_container_width=True, height=295, hide_index=True)
 
     st.markdown('<div class="section-title">个体预测SHAP贡献</div>', unsafe_allow_html=True)
-    try:
-        with st.spinner("正在计算个体SHAP解释..."):
-            artifacts = compute_shap_artifacts(model_choice)
-            shap_values, expected_value = compute_input_shap(artifacts, input_df)
-            fig = draw_shap_bar(shap_values, input_df, feature_names, expected_value)
-            st.pyplot(fig, use_container_width=True)
-            plt.close(fig)
-    except Exception as exc:
-        st.info(f"当前模型暂无法展示SHAP解释：{exc}")
+    run_ind_shap = True
+    if shap_requires_kernel(model):
+        st.caption(
+            f"当前模型（{display_model_name(model_choice)}）无原生SHAP支持，"
+            "需使用KernelExplainer近似计算，耗时较长。"
+        )
+        run_ind_shap = st.button("计算个体SHAP解释", key="btn_ind_shap", type="primary")
+    if run_ind_shap:
+        try:
+            with st.spinner("正在计算个体SHAP解释..."):
+                artifacts = compute_shap_artifacts(model_choice)
+                shap_values, expected_value = compute_input_shap(artifacts, input_df)
+                fig = draw_shap_bar(shap_values, input_df, feature_names, expected_value)
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
+        except Exception as exc:
+            st.info(f"当前模型暂无法展示SHAP解释：{exc}")
 
 
 # ====================================================================
@@ -1062,27 +1081,34 @@ with tab_shap:
                 st.info(f"SHAP条形图暂不可用：{exc}")
 
     st.markdown('<div class="section-title">SHAP特征重要性表</div>', unsafe_allow_html=True)
-    try:
-        artifacts = compute_shap_artifacts(model_choice)
-        mean_shap = np.abs(artifacts["values"]).mean(axis=0)
-        shap_df = (
-            pd.DataFrame(
-                {
-                    "变量 Feature": [display_feature_name(name) for name in feature_names],
-                    "Mean |SHAP|": mean_shap,
-                }
+    run_tab_shap = True
+    if shap_requires_kernel(model):
+        st.caption(
+            f"当前模型（{display_model_name(model_choice)}）的SHAP值需近似计算，耗时较长。"
+        )
+        run_tab_shap = st.button("计算SHAP特征重要性", key="btn_tab_shap", type="primary")
+    if run_tab_shap:
+        try:
+            artifacts = compute_shap_artifacts(model_choice)
+            mean_shap = np.abs(artifacts["values"]).mean(axis=0)
+            shap_df = (
+                pd.DataFrame(
+                    {
+                        "变量 Feature": [display_feature_name(name) for name in feature_names],
+                        "Mean |SHAP|": mean_shap,
+                    }
+                )
+                .sort_values("Mean |SHAP|", ascending=False)
+                .reset_index(drop=True)
             )
-            .sort_values("Mean |SHAP|", ascending=False)
-            .reset_index(drop=True)
-        )
-        shap_df.insert(0, "排序 Rank", np.arange(1, len(shap_df) + 1))
-        st.dataframe(
-            shap_df.style.background_gradient(subset=["Mean |SHAP|"], cmap="Blues"),
-            use_container_width=True,
-            hide_index=True,
-        )
-    except Exception as exc:
-        st.info(f"SHAP表格暂不可用：{exc}")
+            shap_df.insert(0, "排序 Rank", np.arange(1, len(shap_df) + 1))
+            st.dataframe(
+                shap_df.style.background_gradient(subset=["Mean |SHAP|"], cmap="Blues"),
+                use_container_width=True,
+                hide_index=True,
+            )
+        except Exception as exc:
+            st.info(f"SHAP表格暂不可用：{exc}")
 
 
 # ====================================================================
