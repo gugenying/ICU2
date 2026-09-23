@@ -793,22 +793,33 @@ best_model_name = get_best_model_name(datasets)
 # ====================================================================
 with st.sidebar:
     st.markdown("### 模型选择")
-    # 默认使用 Gradient Boosting；若模型文件缺失则回退到验证集表现最优模型
+    # 默认使用论文最终模型 Gradient Boosting；若模型文件缺失则回退到验证集表现最优模型
     default_model_name = (
         "GBC" if "GBC" in available_models
         else best_model_name if best_model_name in available_models
         else available_models[0]
     )
+    # 最终模型排在下拉列表首位并标注，其余模型保留用于比较
+    ordered_models = [default_model_name] + [
+        m for m in available_models if m != default_model_name
+    ]
+
+    def selectbox_label(name: str) -> str:
+        label = display_model_name(name)
+        return f"{label}（最终模型）" if name == default_model_name else label
+
     model_choice = st.selectbox(
         "已训练模型",
-        options=available_models,
-        index=available_models.index(default_model_name),
-        format_func=display_model_name,
-        help="默认使用 Gradient Boosting 模型，可切换至其他已训练模型。",
+        options=ordered_models,
+        index=0,
+        format_func=selectbox_label,
+        help="默认使用论文最终模型 Gradient Boosting，其余已训练模型保留用于比较。",
     )
 
-    if model_choice == best_model_name:
-        st.caption("当前为验证集表现较优模型")
+    if model_choice == default_model_name:
+        st.caption("当前为论文最终模型：综合区分能力、召回率、校准表现与临床净获益选定")
+    elif model_choice == best_model_name:
+        st.caption("当前为验证集 AUC 较优模型")
 
     _scores = get_model_scores(model_choice, datasets)
     st.caption(
